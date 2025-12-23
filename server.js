@@ -25,6 +25,14 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/lessons', lessonRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
+// Default Route
+app.get('/', (req, res) => {
+    res.json({ message: 'Welcome to TeachHub API', docs: '/api-docs' });
+});
+app.get('/api', (req, res) => {
+    res.json({ message: 'Welcome to TeachHub API', docs: '/api-docs' });
+});
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

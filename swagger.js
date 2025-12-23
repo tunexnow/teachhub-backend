@@ -14,6 +14,10 @@ const options = {
         },
         servers: [
             {
+                url: 'https://teachhub-api.onrender.com/api',
+                description: 'Production server',
+            },
+            {
                 url: 'http://localhost:3000/api',
                 description: 'Local server',
             },
