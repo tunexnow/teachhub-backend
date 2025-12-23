@@ -1,0 +1,127 @@
+const express = require('express');
+const { PrismaClient } = require('@prisma/client');
+const { verifyToken, isTeacher } = require('../middleware/auth.middleware');
+
+const router = express.Router();
+const prisma = new PrismaClient();
+
+/**
+ * @swagger
+ * tags:
+ *   name: Lessons
+ *   description: Lesson management endpoints
+ */
+
+/**
+ * @swagger
+ * /lessons:
+ *   post:
+ *     summary: Create a new lesson (Teacher only)
+ *     tags: [Lessons]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - courseId
+ *               - content
+ *             properties:
+ *               title:
+ *                 type: string
+ *               subtitle:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *                 enum: [video, text]
+ *               courseId:
+ *                 type: string
+ *               content:
+ *                 type: object
+ *     responses:
+ *       201:
+ *         description: Lesson created
+ */
+// Create Lesson (Teacher only)
+router.post('/', [verifyToken, isTeacher], async (req, res) => {
+    const { title, subtitle, type, courseId, content } = req.body;
+
+    if (!title || !courseId || !content) {
+        return res.status(400).json({ message: 'Title, courseId, and content are required' });
+    }
+
+    // Basic validation for content (kept simple for prototype)
+    // const { videoUrl, gameEmbedUrl, flashcards, quiz } = content;
+
+    try {
+        const course = await prisma.course.findUnique({
+            where: { id: courseId }
+        });
+
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+
+        if (course.createdBy !== req.userId) {
+            return res.status(403).json({ message: 'You usually can only add lessons to your own courses.' });
+        }
+
+        const lesson = await prisma.lesson.create({
+            data: {
+                title,
+                subtitle,
+                type: type || 'text',
+                courseId,
+                content
+            }
+        });
+        res.status(201).json(lesson);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error creating lesson' });
+    }
+});
+
+/**
+ * @swagger
+ * /lessons/{id}:
+ *   get:
+ *     summary: Get lesson details
+ *     tags: [Lessons]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Lesson details
+ *       404:
+ *         description: Lesson not found
+ */
+// Get Lesson Details (Public) - Includes full content
+router.get('/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const lesson = await prisma.lesson.findUnique({
+            where: { id: id }
+        });
+
+        if (!lesson) {
+            return res.status(404).json({ message: 'Lesson not found' });
+        }
+
+        res.json(lesson);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching lesson' });
+    }
+});
+
+module.exports = router;

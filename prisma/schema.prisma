@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("student") // admin | teacher | student
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  courses   Course[] @relation("UserCourses")
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  thumbnail   String?
+  
+  // Prototype placeholders
+  duration    Int      @default(0)
+  progress    Int      @default(0)
+  rating      Int?
+
+  createdBy   String
+  user        User     @relation("UserCourses", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  lessons     Lesson[]
+  categories  Category[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Lesson {
+  id        String     @id @default(uuid())
+  title     String
+  subtitle  String?
+  type      LessonType @default(text)
+
+  // Stores lesson body, YouTube URL, flashcards & quiz as JSON
+  content   Json
+
+  courseId  String
+  course    Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Category {
+  id        String @id @default(uuid())
+  name      String
+
+  courseId  String
+  course    Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+enum LessonType {
+  video
+  text
+}
