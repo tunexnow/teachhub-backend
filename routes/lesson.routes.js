@@ -44,7 +44,30 @@ const prisma = new PrismaClient();
  *                 type: object
  *     responses:
  *       201:
- *         description: Lesson created
+ *         description: Lesson created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   format: uuid
+ *                 title:
+ *                   type: string
+ *                 subtitle:
+ *                   type: string
+ *                 type:
+ *                   type: string
+ *                 courseId:
+ *                   type: string
+ *                   format: uuid
+ *                 content:
+ *                   type: object
+ *                   description: Flexible JSON content field
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
  */
 // Create Lesson (Teacher only)
 router.post('/', [verifyToken, isTeacher], async (req, res) => {
@@ -100,7 +123,27 @@ router.post('/', [verifyToken, isTeacher], async (req, res) => {
  *           type: string
  *     responses:
  *       200:
- *         description: Lesson details
+ *         description: Lesson details with full content
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   format: uuid
+ *                 title:
+ *                   type: string
+ *                 subtitle:
+ *                   type: string
+ *                 type:
+ *                   type: string
+ *                   enum: [video, text]
+ *                 content:
+ *                   type: object
+ *                 courseId:
+ *                   type: string
+ *                   format: uuid
  *       404:
  *         description: Lesson not found
  */

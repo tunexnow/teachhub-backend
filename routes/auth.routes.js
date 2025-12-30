@@ -42,6 +42,17 @@ const prisma = new PrismaClient();
  *     responses:
  *       201:
  *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: User registered successfully
+ *                 userId:
+ *                   type: string
+ *                   format: uuid
  *       400:
  *         description: Validation error
  */
@@ -107,6 +118,15 @@ router.post('/register', async (req, res) => {
  *             schema:
  *               type: object
  *               properties:
+ *                 id:
+ *                   type: string
+ *                   format: uuid
+ *                 email:
+ *                   type: string
+ *                   format: email
+ *                 role:
+ *                   type: string
+ *                   enum: [student, teacher, admin]
  *                 accessToken:
  *                   type: string
  *       401:

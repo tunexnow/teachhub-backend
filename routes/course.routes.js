@@ -38,7 +38,30 @@ const prisma = new PrismaClient();
  *                 type: string
  *     responses:
  *       201:
- *         description: Course created
+ *         description: Course created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   format: uuid
+ *                 title:
+ *                   type: string
+ *                 description:
+ *                   type: string
+ *                 thumbnail:
+ *                   type: string
+ *                 createdBy:
+ *                   type: string
+ *                   format: uuid
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                 updatedAt:
+ *                   type: string
+ *                   format: date-time
  */
 // Create Course (Teacher only)
 router.post('/', [verifyToken, isTeacher], async (req, res) => {
@@ -73,6 +96,34 @@ router.post('/', [verifyToken, isTeacher], async (req, res) => {
  *     responses:
  *       200:
  *         description: List of courses
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     format: uuid
+ *                   title:
+ *                     type: string
+ *                   description:
+ *                     type: string
+ *                   thumbnail:
+ *                     type: string
+ *                   user:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                       name:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                       role:
+ *                         type: string
  */
 // List all courses (Public)
 router.get('/', async (req, res) => {
@@ -105,7 +156,42 @@ router.get('/', async (req, res) => {
  *           type: string
  *     responses:
  *       200:
- *         description: Course details
+ *         description: Course details with lessons and instructor info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   format: uuid
+ *                 title:
+ *                   type: string
+ *                 description:
+ *                   type: string
+ *                 thumbnail:
+ *                   type: string
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                 lessons:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                       title:
+ *                         type: string
+ *                       type:
+ *                         type: string
  *       404:
  *         description: Course not found
  */
