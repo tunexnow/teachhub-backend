@@ -17,6 +17,22 @@ const verifyToken = (req, res, next) => {
     });
 };
 
+const verifyTokenOptional = (req, res, next) => {
+    const token = req.headers['authorization']?.split(' ')[1];
+
+    if (!token) {
+        return next();
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (!err) {
+            req.userId = decoded.id;
+            req.userRole = decoded.role;
+        }
+        next();
+    });
+};
+
 const isTeacher = (req, res, next) => {
     if (req.userRole === 'teacher' || req.userRole === 'admin') {
         next();
@@ -35,6 +51,7 @@ const isAdmin = (req, res, next) => {
 
 module.exports = {
     verifyToken,
+    verifyTokenOptional,
     isTeacher,
     isAdmin
 };

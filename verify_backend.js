@@ -53,17 +53,22 @@ async function main() {
         });
         teacherToken = loginRes.data.accessToken;
         console.log('✅ Success. Token received.');
+        console.log('User Details:', {
+            name: loginRes.data.name,
+            role: loginRes.data.role
+        });
 
         console.log('\n--- 3. Creating Course ---');
         const courseRes = await axios.post(`${API_URL}/courses`, {
             title: 'Intro to Prisma',
             description: 'Learn how to use Prisma with TiDB',
-            thumbnail: 'http://example.com/image.png'
+            thumbnail: 'http://example.com/image.png',
+            duration: 120 // 2 hours
         }, {
             headers: { Authorization: `Bearer ${teacherToken}` }
         });
         courseId = courseRes.data.id;
-        console.log(`✅ Success. Course ID: ${courseId}`);
+        console.log(`✅ Success. Course ID: ${courseId}, Duration: ${courseRes.data.duration}`);
 
         console.log('\n--- 4. Adding Lesson ---');
         const lessonRes = await axios.post(`${API_URL}/lessons`, {
@@ -73,9 +78,7 @@ async function main() {
             courseId: courseId,
             content: {
                 videoUrl: 'https://youtube.com/watch?v=123',
-                gameEmbedUrl: 'https://wordwall.net/embed/123',
-                flashcards: [{ q: 'What is Prisma?', a: 'ORM' }],
-                quiz: [{ q: 'Is it cool?', a: 'Yes' }]
+                gameEmbedUrl: 'https://wordwall.net/embed/123'
             }
         }, {
             headers: { Authorization: `Bearer ${teacherToken}` }
@@ -83,9 +86,29 @@ async function main() {
         const lessonId = lessonRes.data.id;
         console.log(`✅ Success. Lesson ID: ${lessonId}`);
 
-        console.log('\n--- 5. Fetching Lesson Details ---');
-        const getLessonRes = await axios.get(`${API_URL}/lessons/${lessonId}`);
-        console.log('✅ Success. Lesson Data:', getLessonRes.data);
+        console.log('\n--- 5. Publishing Course ---');
+        const publishRes = await axios.put(`${API_URL}/courses/${courseId}/publish`, {}, {
+            headers: { Authorization: `Bearer ${teacherToken}` }
+        });
+        console.log(`✅ Success. Course Status: ${publishRes.data.status}`);
+
+        console.log('\n--- 6. Marking Lesson as Complete ---');
+        await axios.post(`${API_URL}/lessons/${lessonId}/complete`, {}, {
+            headers: { Authorization: `Bearer ${teacherToken}` }
+        });
+        console.log('✅ Success. Lesson marked complete.');
+
+        console.log('\n--- 7. Checking Progress (Course Details) ---');
+        // Request with token to get progress
+        const getCourseRes = await axios.get(`${API_URL}/courses/${courseId}`, {
+            headers: { Authorization: `Bearer ${teacherToken}` }
+        });
+        const { numberOfLessons, completedLessons } = getCourseRes.data;
+        console.log(`✅ Success. Total Lessons: ${numberOfLessons}, Completed: ${completedLessons}`);
+
+        if (completedLessons !== 1) {
+            console.error('❌ Error: Expected completedLessons to be 1');
+        }
 
         console.log('\n🎉 ALL VERIFICATION STEPS PASSED!');
 

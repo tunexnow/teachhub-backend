@@ -1,6 +1,6 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
-const { verifyToken, isTeacher } = require('../middleware/auth.middleware');
+const { verifyToken, isTeacher, verifyTokenOptional } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -65,7 +65,7 @@ const prisma = new PrismaClient();
  */
 // Create Course (Teacher only)
 router.post('/', [verifyToken, isTeacher], async (req, res) => {
-    const { title, description, thumbnail } = req.body;
+    const { title, description, thumbnail, duration } = req.body;
 
     if (!title || !description) {
         return res.status(400).json({ message: 'Title and description are required' });
@@ -77,13 +77,14 @@ router.post('/', [verifyToken, isTeacher], async (req, res) => {
                 title,
                 description,
                 thumbnail,
+                duration: duration || 0,
                 createdBy: req.userId
             }
         });
         res.status(201).json(course);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error creating course' });
+        console.error("CREATE COURSE ERROR:", error);
+        res.status(500).json({ message: 'Error creating course', error: error.message });
     }
 });
 
@@ -132,10 +133,19 @@ router.get('/', async (req, res) => {
             include: {
                 user: {
                     select: { id: true, email: true, name: true, role: true }
+                },
+                _count: {
+                    select: { lessons: true }
                 }
             }
         });
-        res.json(courses);
+
+        const coursesWithStats = courses.map(course => ({
+            ...course,
+            numberOfLessons: course._count.lessons
+        }));
+
+        res.json(coursesWithStats);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error fetching courses' });
@@ -196,7 +206,7 @@ router.get('/', async (req, res) => {
  *         description: Course not found
  */
 // Get Course Details (Public)
-router.get('/:id', async (req, res) => {
+router.get('/:id', verifyTokenOptional, async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -208,6 +218,9 @@ router.get('/:id', async (req, res) => {
                 },
                 lessons: {
                     select: { id: true, title: true, type: true }
+                },
+                _count: {
+                    select: { lessons: true }
                 }
             }
         });
@@ -216,10 +229,51 @@ router.get('/:id', async (req, res) => {
             return res.status(404).json({ message: 'Course not found' });
         }
 
-        res.json(course);
+        let completedLessons = 0;
+        if (req.userId) {
+            completedLessons = await prisma.lessonCompletion.count({
+                where: {
+                    userId: req.userId,
+                    lesson: { courseId: id }
+                }
+            });
+        }
+
+        res.json({
+            ...course,
+            numberOfLessons: course._count.lessons,
+            completedLessons
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error fetching course details' });
+    }
+});
+
+// Publish Course (Teacher only)
+router.put('/:id/publish', [verifyToken, isTeacher], async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const course = await prisma.course.findUnique({ where: { id } });
+
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+
+        if (course.createdBy !== req.userId) {
+            return res.status(403).json({ message: 'You can only publish your own courses' });
+        }
+
+        const updatedCourse = await prisma.course.update({
+            where: { id },
+            data: { status: 'PUBLISHED' }
+        });
+
+        res.json(updatedCourse);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error publishing course' });
     }
 });
 

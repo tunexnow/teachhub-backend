@@ -17,55 +17,75 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  courses   Course[] @relation("UserCourses")
+  courses          Course[]           @relation("UserCourses")
+  LessonCompletion LessonCompletion[]
 }
 
 model Course {
-  id          String   @id @default(uuid())
+  id          String  @id @default(uuid())
   title       String
   description String
   thumbnail   String?
-  
+
   // Prototype placeholders
-  duration    Int      @default(0)
-  progress    Int      @default(0)
-  rating      Int?
+  duration Int  @default(0)
+  progress Int  @default(0)
+  rating   Int?
 
-  createdBy   String
-  user        User     @relation("UserCourses", fields: [createdBy], references: [id], onDelete: Cascade)
+  createdBy String
+  user      User   @relation("UserCourses", fields: [createdBy], references: [id], onDelete: Cascade)
 
-  lessons     Lesson[]
-  categories  Category[]
+  lessons    Lesson[]
+  categories Category[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  status CourseStatus @default(DRAFT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Lesson {
-  id        String     @id @default(uuid())
-  title     String
-  subtitle  String?
-  type      LessonType @default(text)
+  id       String     @id @default(uuid())
+  title    String
+  subtitle String?
+  type     LessonType @default(text)
 
   // Stores lesson body, YouTube URL, flashcards & quiz as JSON
-  content   Json
+  content Json
 
-  courseId  String
-  course    Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  LessonCompletion LessonCompletion[]
 }
 
 model Category {
-  id        String @id @default(uuid())
-  name      String
+  id   String @id @default(uuid())
+  name String
 
-  courseId  String
-  course    Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 }
 
 enum LessonType {
   video
   text
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model LessonCompletion {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  completedAt DateTime @default(now())
+
+  @@unique([userId, lessonId])
 }

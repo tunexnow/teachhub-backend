@@ -167,4 +167,37 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+// Mark Lesson as Complete
+router.post('/:id/complete', verifyToken, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const lesson = await prisma.lesson.findUnique({ where: { id } });
+
+        if (!lesson) {
+            return res.status(404).json({ message: 'Lesson not found' });
+        }
+
+        // Create or update completion (idempotent)
+        await prisma.lessonCompletion.upsert({
+            where: {
+                userId_lessonId: {
+                    userId: req.userId,
+                    lessonId: id
+                }
+            },
+            update: { completedAt: new Date() },
+            create: {
+                userId: req.userId,
+                lessonId: id
+            }
+        });
+
+        res.json({ message: 'Lesson marked as complete' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error marking lesson as complete' });
+    }
+});
+
 module.exports = router;
