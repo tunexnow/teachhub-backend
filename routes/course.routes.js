@@ -36,6 +36,9 @@ const prisma = new PrismaClient();
  *                 type: string
  *               thumbnail:
  *                 type: string
+ *               duration:
+ *                 type: integer
+ *                 description: Duration in minutes
  *     responses:
  *       201:
  *         description: Course created successfully
@@ -53,6 +56,11 @@ const prisma = new PrismaClient();
  *                   type: string
  *                 thumbnail:
  *                   type: string
+ *                 duration:
+ *                   type: integer
+ *                 status:
+ *                   type: string
+ *                   enum: [DRAFT, PUBLISHED]
  *                 createdBy:
  *                   type: string
  *                   format: uuid
@@ -113,6 +121,12 @@ router.post('/', [verifyToken, isTeacher], async (req, res) => {
  *                     type: string
  *                   thumbnail:
  *                     type: string
+ *                   duration:
+ *                     type: integer
+ *                   status:
+ *                     type: string
+ *                   numberOfLessons:
+ *                     type: integer
  *                   user:
  *                     type: object
  *                     properties:
@@ -181,6 +195,14 @@ router.get('/', async (req, res) => {
  *                   type: string
  *                 thumbnail:
  *                   type: string
+ *                 duration:
+ *                   type: integer
+ *                 status:
+ *                   type: string
+ *                 numberOfLessons:
+ *                   type: integer
+ *                 completedLessons:
+ *                   type: integer
  *                 user:
  *                   type: object
  *                   properties:
@@ -250,6 +272,36 @@ router.get('/:id', verifyTokenOptional, async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /courses/{id}/publish:
+ *   put:
+ *     summary: Publish a course (Teacher only)
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Course published successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: PUBLISHED
+ *       403:
+ *         description: Unauthorized
+ *       404:
+ *         description: Course not found
+ */
 // Publish Course (Teacher only)
 router.put('/:id/publish', [verifyToken, isTeacher], async (req, res) => {
     const { id } = req.params;

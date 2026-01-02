@@ -121,6 +121,8 @@ router.post('/register', async (req, res) => {
  *                 id:
  *                   type: string
  *                   format: uuid
+ *                 name:
+ *                   type: string
  *                 email:
  *                   type: string
  *                   format: email

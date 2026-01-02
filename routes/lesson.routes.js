@@ -167,6 +167,26 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /lessons/{id}/complete:
+ *   post:
+ *     summary: Mark a lesson as complete
+ *     tags: [Lessons]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Lesson marked as complete
+ *       404:
+ *         description: Lesson not found
+ */
 // Mark Lesson as Complete
 router.post('/:id/complete', verifyToken, async (req, res) => {
     const { id } = req.params;
