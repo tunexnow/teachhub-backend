@@ -17,12 +17,14 @@ app.get('/', (req, res) => {
 const authRoutes = require('./routes/auth.routes');
 const courseRoutes = require('./routes/course.routes');
 const lessonRoutes = require('./routes/lesson.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 const { swaggerUi, specs } = require('./swagger');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/lessons', lessonRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 // Default Route

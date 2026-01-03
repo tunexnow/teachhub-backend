@@ -56,17 +56,13 @@ const prisma = new PrismaClient();
  *       400:
  *         description: Validation error
  */
-// Register
+// Register Student (Auto-approved)
 router.post('/register', async (req, res) => {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
         return res.status(400).json({ message: 'Name, email and password are required' });
     }
-
-    // Basic validation for role
-    const validRoles = ['student', 'teacher', 'admin'];
-    const userRole = validRoles.includes(role) ? role : 'student';
 
     try {
         const hashedPassword = await bcrypt.hash(password, 8);
@@ -76,13 +72,77 @@ router.post('/register', async (req, res) => {
                 name,
                 email,
                 password: hashedPassword,
-                role: userRole
+                role: 'student',       // Force role to student
+                isApproved: true       // Auto-approve students
             }
         });
 
-        res.status(201).json({ message: 'User registered successfully', userId: user.id });
+        res.status(201).json({ message: 'Student registered successfully', userId: user.id });
     } catch (error) {
-        if (error.code === 'P2002') { // Unique constraint violation
+        if (error.code === 'P2002') {
+            return res.status(400).json({ message: 'Email already exists' });
+        }
+        console.error(error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+/**
+ * @swagger
+ * /auth/register/teacher:
+ *   post:
+ *     summary: Register a new teacher (Pending Approval)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Teacher registered successfully. Pending approval.
+ *       400:
+ *         description: Validation error
+ */
+// Register Teacher (Pending Approval)
+router.post('/register/teacher', async (req, res) => {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+        return res.status(400).json({ message: 'Name, email and password are required' });
+    }
+
+    try {
+        const hashedPassword = await bcrypt.hash(password, 8);
+
+        const user = await prisma.user.create({
+            data: {
+                name,
+                email,
+                password: hashedPassword,
+                role: 'teacher',       // Force role to teacher
+                isApproved: false      // Require approval
+            }
+        });
+
+        res.status(201).json({
+            message: 'Teacher registered successfully. Please wait for admin approval.',
+            userId: user.id
+        });
+    } catch (error) {
+        if (error.code === 'P2002') {
             return res.status(400).json({ message: 'Email already exists' });
         }
         console.error(error);
@@ -151,6 +211,11 @@ router.post('/login', async (req, res) => {
 
         if (!passwordIsValid) {
             return res.status(401).json({ message: 'Invalid password' });
+        }
+
+        // Check if user is approved
+        if (!user.isApproved) {
+            return res.status(403).json({ message: 'Your account is pending approval. Please contact the admin.' });
         }
 
         const token = jwt.sign(

@@ -17,6 +17,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  isApproved Boolean  @default(true) // Students are auto-approved, Teachers need manual approval
+
   courses          Course[]           @relation("UserCourses")
   LessonCompletion LessonCompletion[]
 }
