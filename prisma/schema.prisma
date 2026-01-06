@@ -74,6 +74,7 @@ model Category {
 enum LessonType {
   video
   text
+  game
 }
 
 enum CourseStatus {

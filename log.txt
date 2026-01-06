@@ -1,0 +1,8 @@
+--- Starting Verification ---
+Waiting for server...
+
+--- 1. Authenticating Teacher 1 ---
+Verification Failed: Cannot read properties of undefined (reading 'id')
+Error details: TypeError: Cannot read properties of undefined (reading 'id')
+    at runVerification (C:\Users\TuNeX\Desktop\sys rashidat\verify_fixes.js:33:41)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)

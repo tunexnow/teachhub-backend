@@ -203,6 +203,7 @@ router.get('/', async (req, res) => {
  *                   type: integer
  *                 completedLessons:
  *                   type: integer
+ *                   description: Number of lessons completed by the authenticated user
  *                 user:
  *                   type: object
  *                   properties:
@@ -251,24 +252,106 @@ router.get('/:id', verifyTokenOptional, async (req, res) => {
             return res.status(404).json({ message: 'Course not found' });
         }
 
-        let completedLessons = 0;
+        let completedLessonsCount = 0;
+        let completedLessonIds = [];
+
         if (req.userId) {
-            completedLessons = await prisma.lessonCompletion.count({
+            const completed = await prisma.lessonCompletion.findMany({
                 where: {
                     userId: req.userId,
                     lesson: { courseId: id }
-                }
+                },
+                select: { lessonId: true }
             });
+            completedLessonsCount = completed.length;
+            completedLessonIds = completed.map(c => c.lessonId);
         }
+
+        // Inject isCompleted into lessons
+        const lessonsWithCompletion = course.lessons.map(lesson => ({
+            ...lesson,
+            isCompleted: completedLessonIds.includes(lesson.id)
+        }));
 
         res.json({
             ...course,
+            lessons: lessonsWithCompletion,
             numberOfLessons: course._count.lessons,
-            completedLessons
+            completedLessons: completedLessonsCount
         });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error fetching course details' });
+    }
+});
+
+/**
+ * @swagger
+ * /courses/{id}:
+ *   put:
+ *     summary: Update a course (Teacher only)
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               thumbnail:
+ *                 type: string
+ *               duration:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Course updated successfully
+ *       403:
+ *         description: Unauthorized - You can only update your own courses
+ *       404:
+ *         description: Course not found
+ */
+// Update Course (Teacher only)
+router.put('/:id', [verifyToken, isTeacher], async (req, res) => {
+    const { id } = req.params;
+    const { title, description, thumbnail, duration } = req.body;
+
+    try {
+        const course = await prisma.course.findUnique({ where: { id } });
+
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+
+        if (course.createdBy !== req.userId) {
+            return res.status(403).json({ message: 'You can only update your own courses' });
+        }
+
+        const updatedCourse = await prisma.course.update({
+            where: { id },
+            data: {
+                title,
+                description,
+                thumbnail,
+                duration
+            }
+        });
+
+        res.json(updatedCourse);
+    } catch (error) {
+        console.error("UPDATE COURSE ERROR:", error);
+        res.status(500).json({ message: 'Error updating course', error: error.message });
     }
 });
 

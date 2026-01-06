@@ -1,6 +1,6 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
-const { verifyToken, isTeacher } = require('../middleware/auth.middleware');
+const { verifyToken, isTeacher, verifyTokenOptional } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -37,7 +37,7 @@ const prisma = new PrismaClient();
  *                 type: string
  *               type:
  *                 type: string
- *                 enum: [video, text]
+ *                 enum: [video, text, game]
  *               courseId:
  *                 type: string
  *               content:
@@ -138,7 +138,7 @@ router.post('/', [verifyToken, isTeacher], async (req, res) => {
  *                   type: string
  *                 type:
  *                   type: string
- *                   enum: [video, text]
+ *                   enum: [video, text, game]
  *                 content:
  *                   type: object
  *                 courseId:
@@ -148,7 +148,7 @@ router.post('/', [verifyToken, isTeacher], async (req, res) => {
  *         description: Lesson not found
  */
 // Get Lesson Details (Public) - Includes full content
-router.get('/:id', async (req, res) => {
+router.get('/:id', verifyTokenOptional, async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -160,7 +160,20 @@ router.get('/:id', async (req, res) => {
             return res.status(404).json({ message: 'Lesson not found' });
         }
 
-        res.json(lesson);
+        let isCompleted = false;
+        if (req.userId) {
+            const completion = await prisma.lessonCompletion.findUnique({
+                where: {
+                    userId_lessonId: {
+                        userId: req.userId,
+                        lessonId: id
+                    }
+                }
+            });
+            isCompleted = !!completion;
+        }
+
+        res.json({ ...lesson, isCompleted });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error fetching lesson' });
