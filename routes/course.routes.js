@@ -197,8 +197,9 @@ router.get('/', async (req, res) => {
  *                   type: string
  *                 duration:
  *                   type: integer
- *                 status:
- *                   type: string
+ *                 progress:
+ *                   type: integer
+ *                   description: Calculated completion percentage (0-100)
  *                 numberOfLessons:
  *                   type: integer
  *                 completedLessons:
@@ -273,11 +274,15 @@ router.get('/:id', verifyTokenOptional, async (req, res) => {
             isCompleted: completedLessonIds.includes(lesson.id)
         }));
 
+        const numberOfLessons = course._count.lessons;
+        const progress = numberOfLessons > 0 ? Math.round((completedLessonsCount / numberOfLessons) * 100) : 0;
+
         res.json({
             ...course,
             lessons: lessonsWithCompletion,
-            numberOfLessons: course._count.lessons,
-            completedLessons: completedLessonsCount
+            numberOfLessons,
+            completedLessons: completedLessonsCount,
+            progress
         });
     } catch (error) {
         console.error(error);
