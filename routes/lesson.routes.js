@@ -141,6 +141,9 @@ router.post('/', [verifyToken, isTeacher], async (req, res) => {
  *                   enum: [video, text, game]
  *                 content:
  *                   type: object
+ *                 isCompleted:
+ *                   type: boolean
+ *                   description: Whether the authenticated user has completed this lesson
  *                 courseId:
  *                   type: string
  *                   format: uuid
