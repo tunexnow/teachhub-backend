@@ -127,6 +127,12 @@ router.post('/', [verifyToken, isTeacher], async (req, res) => {
  *                     type: string
  *                   numberOfLessons:
  *                     type: integer
+ *                   completedLessons:
+ *                     type: integer
+ *                     description: Number of lessons completed by the authenticated user
+ *                   progress:
+ *                     type: integer
+ *                     description: Calculated completion percentage (0-100)
  *                   user:
  *                     type: object
  *                     properties:
@@ -141,7 +147,7 @@ router.post('/', [verifyToken, isTeacher], async (req, res) => {
  *                         type: string
  */
 // List all courses (Public)
-router.get('/', async (req, res) => {
+router.get('/', verifyTokenOptional, async (req, res) => {
     try {
         const courses = await prisma.course.findMany({
             include: {
@@ -154,10 +160,33 @@ router.get('/', async (req, res) => {
             }
         });
 
-        const coursesWithStats = courses.map(course => ({
-            ...course,
-            numberOfLessons: course._count.lessons
-        }));
+        // If user is logged in, fetch their completed lessons for all courses
+        let userCompletions = [];
+        if (req.userId) {
+            userCompletions = await prisma.lessonCompletion.findMany({
+                where: { userId: req.userId },
+                select: { lesson: { select: { courseId: true } } }
+            });
+        }
+
+        const coursesWithStats = courses.map(course => {
+            const numberOfLessons = course._count.lessons;
+            let completedLessons = 0;
+            let progress = 0;
+
+            if (req.userId) {
+                // Count completions for this specific course
+                completedLessons = userCompletions.filter(c => c.lesson.courseId === course.id).length;
+                progress = numberOfLessons > 0 ? Math.round((completedLessons / numberOfLessons) * 100) : 0;
+            }
+
+            return {
+                ...course,
+                numberOfLessons,
+                completedLessons,
+                progress
+            };
+        });
 
         res.json(coursesWithStats);
     } catch (error) {

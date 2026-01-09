@@ -50,9 +50,18 @@ const prisma = new PrismaClient();
  *                 message:
  *                   type: string
  *                   example: User registered successfully
- *                 userId:
+ *                 id:
  *                   type: string
  *                   format: uuid
+ *                 name:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                   format: email
+ *                 role:
+ *                   type: string
+ *                 accessToken:
+ *                   type: string
  *       400:
  *         description: Validation error
  */
@@ -77,7 +86,19 @@ router.post('/register', async (req, res) => {
             }
         });
 
-        res.status(201).json({ message: 'Student registered successfully', userId: user.id });
+        const token = jwt.sign(
+            { id: user.id, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: 86400 } // 24 hours
+        );
+
+        res.status(201).json({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            accessToken: token
+        });
     } catch (error) {
         if (error.code === 'P2002') {
             return res.status(400).json({ message: 'Email already exists' });
