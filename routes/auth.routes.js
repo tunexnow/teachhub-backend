@@ -26,11 +26,14 @@ const prisma = new PrismaClient();
  *           schema:
  *             type: object
  *             required:
- *               - name
+ *               - firstName
+ *               - lastName
  *               - email
  *               - password
  *             properties:
- *               name:
+ *               firstName:
+ *                 type: string
+ *               lastName:
  *                 type: string
  *               email:
  *                 type: string
@@ -38,7 +41,7 @@ const prisma = new PrismaClient();
  *                 type: string
  *               role:
  *                 type: string
- *                 enum: [student, teacher, admin]
+ *                 enum: [STUDENT, TEACHER, ADMIN]
  *     responses:
  *       201:
  *         description: User registered successfully
@@ -53,7 +56,9 @@ const prisma = new PrismaClient();
  *                 id:
  *                   type: string
  *                   format: uuid
- *                 name:
+ *                 firstName:
+ *                   type: string
+ *                 lastName:
  *                   type: string
  *                 email:
  *                   type: string
@@ -67,10 +72,10 @@ const prisma = new PrismaClient();
  */
 // Register Student (Auto-approved)
 router.post('/register', async (req, res) => {
-    const { name, email, password } = req.body;
+    const { firstName, lastName, email, password } = req.body;
 
-    if (!name || !email || !password) {
-        return res.status(400).json({ message: 'Name, email and password are required' });
+    if (!firstName || !lastName || !email || !password) {
+        return res.status(400).json({ message: 'First name, last name, email and password are required' });
     }
 
     try {
@@ -78,11 +83,12 @@ router.post('/register', async (req, res) => {
 
         const user = await prisma.user.create({
             data: {
-                name,
+                firstName,
+                lastName,
                 email,
                 password: hashedPassword,
-                role: 'student',       // Force role to student
-                isApproved: true       // Auto-approve students
+                role: 'STUDENT',       // Force role to STUDENT
+                isActive: true         // Default active status
             }
         });
 
@@ -94,7 +100,8 @@ router.post('/register', async (req, res) => {
 
         res.status(201).json({
             id: user.id,
-            name: user.name,
+            firstName: user.firstName,
+            lastName: user.lastName,
             email: user.email,
             role: user.role,
             accessToken: token
@@ -121,11 +128,14 @@ router.post('/register', async (req, res) => {
  *           schema:
  *             type: object
  *             required:
- *               - name
+ *               - firstName
+ *               - lastName
  *               - email
  *               - password
  *             properties:
- *               name:
+ *               firstName:
+ *                 type: string
+ *               lastName:
  *                 type: string
  *               email:
  *                 type: string
@@ -139,10 +149,10 @@ router.post('/register', async (req, res) => {
  */
 // Register Teacher (Pending Approval)
 router.post('/register/teacher', async (req, res) => {
-    const { name, email, password } = req.body;
+    const { firstName, lastName, email, password } = req.body;
 
-    if (!name || !email || !password) {
-        return res.status(400).json({ message: 'Name, email and password are required' });
+    if (!firstName || !lastName || !email || !password) {
+        return res.status(400).json({ message: 'First name, last name, email and password are required' });
     }
 
     try {
@@ -150,11 +160,12 @@ router.post('/register/teacher', async (req, res) => {
 
         const user = await prisma.user.create({
             data: {
-                name,
+                firstName,
+                lastName,
                 email,
                 password: hashedPassword,
-                role: 'teacher',       // Force role to teacher
-                isApproved: false      // Require approval
+                role: 'TEACHER',       // Force role to TEACHER
+                isActive: true         // Default active status (since isApproved is gone)
             }
         });
 
@@ -202,14 +213,16 @@ router.post('/register/teacher', async (req, res) => {
  *                 id:
  *                   type: string
  *                   format: uuid
- *                 name:
+ *                 firstName:
+ *                   type: string
+ *                 lastName:
  *                   type: string
  *                 email:
  *                   type: string
  *                   format: email
  *                 role:
  *                   type: string
- *                   enum: [student, teacher, admin]
+ *                   enum: [STUDENT, TEACHER, ADMIN]
  *                 accessToken:
  *                   type: string
  *       401:
@@ -235,8 +248,8 @@ router.post('/login', async (req, res) => {
         }
 
         // Check if user is approved
-        if (!user.isApproved) {
-            return res.status(403).json({ message: 'Your account is pending approval. Please contact the admin.' });
+        if (!user.isActive) {
+            return res.status(403).json({ message: 'Your account is inactive. Please contact the admin.' });
         }
 
         const token = jwt.sign(
@@ -247,7 +260,8 @@ router.post('/login', async (req, res) => {
 
         res.status(200).json({
             id: user.id,
-            name: user.name,
+            firstName: user.firstName,
+            lastName: user.lastName,
             email: user.email,
             role: user.role,
             accessToken: token

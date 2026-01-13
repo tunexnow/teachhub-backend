@@ -15,15 +15,16 @@ async function main() {
         const teacher = await prisma.user.upsert({
             where: { email },
             update: {
-                isApproved: true, // Ensure they are approved if they already exist
-                role: 'teacher'
+                // isApproved is default true now, field remains
+                role: 'TEACHER'
             },
             create: {
-                name: 'Demo Teacher',
+                firstName: 'Demo',
+                lastName: 'Teacher',
                 email,
                 password: hashedPassword,
-                role: 'teacher',
-                isApproved: true // Auto-approve for seeding
+                role: 'TEACHER',
+                isActive: true
             }
         });
 

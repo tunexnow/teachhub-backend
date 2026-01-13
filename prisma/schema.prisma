@@ -9,57 +9,252 @@ datasource db {
 
 model User {
   id        String   @id @default(uuid())
-  name      String
   email     String   @unique
   password  String
-  role      String   @default("student") // admin | teacher | student
-  image     String?
+  firstName String
+  lastName  String
+  role      UserRole @default(TEACHER)
+  
+  profileImage String?
+  isActive     Boolean @default(true)
+  
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @updatedAt @default(now())
 
-  isApproved Boolean  @default(true) // Students are auto-approved, Teachers need manual approval
-
+  // Relationships
   courses          Course[]           @relation("UserCourses")
   LessonCompletion LessonCompletion[]
+  
+  // New relationships based on new tables
+  refreshTokens    RefreshToken[]
+  passwordResets   PasswordReset[]
+  lessonNotes      LessonNote[]
+  quizzes          Quiz[]
+  resources        Resource[]
 }
 
-model Course {
-  id          String  @id @default(uuid())
-  title       String
-  description String
-  thumbnail   String?
-
-  // Prototype placeholders
-  duration Int  @default(0)
-  progress Int  @default(0)
-  rating   Int?
-
-  createdBy String
-  user      User   @relation("UserCourses", fields: [createdBy], references: [id], onDelete: Cascade)
-
-  lessons    Lesson[]
-  categories Category[]
-
-  status CourseStatus @default(DRAFT)
-
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+}
+
+model PasswordReset {
+  id        String    @id @default(uuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model Subject {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  code      String?  @unique
+  icon      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+
+  // Relations
+  topics      Topic[]
+  lessonNotes LessonNote[]
+  quizzes     Quiz[]
+  resources   Resource[]
+}
+
+model Grade {
+  id        String   @id @default(uuid())
+  level     String   @unique
+  order     Int      @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+
+  // Relations
+  lessonNotes LessonNote[]
+  quizzes     Quiz[]
+  resources   Resource[]
+}
+
+model Topic {
+  id          String   @id @default(uuid())
+  name        String
+  description String?  @db.Text
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt @default(now())
+
+  // Relations
+  lessonNotes LessonNote[]
+  quizzes     Quiz[]
+  resources   Resource[]
+}
+
+model LessonNote {
+  id          String   @id @default(uuid())
+  title       String
+  content     String   @db.Text
+  
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  
+  gradeId     String
+  grade       Grade    @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  
+  topicId     String?
+  topic       Topic?   @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  
+  isPublished Boolean  @default(false)
+  viewCount   Int      @default(0)
+  
+  createdBy   String
+  user        User     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt @default(now())
+}
+
+model Quiz {
+  id                 String   @id @default(uuid())
+  title              String
+  description        String?  @db.Text
+  
+  subjectId          String
+  subject            Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  
+  gradeId            String
+  grade              Grade    @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  
+  topicId            String?
+  topic              Topic?   @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  
+  timeLimit          Int?     // in minutes
+  passingScore       Int?     // 0-100
+  shuffleQuestions   Boolean  @default(false)
+  showCorrectAnswers Boolean  @default(true)
+  isPublished        Boolean  @default(false)
+  
+  createdBy          String
+  user               User     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt @default(now())
+
+  questions          Question[]
+}
+
+model Question {
+  id           String        @id @default(uuid())
+  quizId       String
+  quiz         Quiz          @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  
+  questionText String        @db.Text
+  questionType QuestionType  @default(MULTIPLE_CHOICE)
+  points       Int           @default(1)
+  order        Int
+  mediaUrl     String?       // Cloudinary URL
+  mediaType    String?
+  explanation  String?       @db.Text
+  
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt @default(now())
+
+  options      QuestionOption[]
+}
+
+model QuestionOption {
+  id          String   @id @default(uuid())
+  questionId  String
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  optionText  String   @db.Text
+  isCorrect   Boolean  @default(false)
+  order       Int
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt @default(now())
+}
+
+model Resource {
+  id          String       @id @default(uuid())
+  title       String
+  description String?      @db.Text
+  type        ResourceType // ENUM
+  
+  fileUrl     String?      // Cloudinary URL
+  fileType    String?
+  fileSize    Int?         // bytes
+  duration    Int?         // seconds for videos
+  
+  subjectId   String
+  subject     Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  
+  gradeId     String
+  grade       Grade        @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  
+  topicId     String?
+  topic       Topic?       @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  
+  isPublished Boolean      @default(false)
+  viewCount   Int          @default(0)
+  
+  createdBy   String
+  user        User         @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt @default(now())
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
+
+model Course {
+  id          String   @id @default(uuid())
+  title       String
+  description String   @db.Text
+  thumbnail   String
+  
+  // Prototype placeholders / Additional fields
+  duration    Int      // in hours (was Int? or Int default(0))
+  progress    Int      @default(0) // 0-100
+  rating      Int?
+  
+  status      CourseStatus @default(DRAFT)
+  
+  createdBy   String
+  user        User     @relation("UserCourses", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  categories  Category[]
+  lessons     Lesson[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt @default(now())
 }
 
 model Lesson {
   id       String     @id @default(uuid())
   title    String
-  subtitle String?
+  subtitle String?    // VARCHAR(300)
   type     LessonType @default(text)
-
-  // Stores lesson body, YouTube URL, flashcards & quiz as JSON
-  content Json
-
+  
+  content  Json       // Using JSON for flexibility as per request JSON/TEXT
+  order    Int        // NOT NULL
+  
   courseId String
-  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course   Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  updatedAt        DateTime           @updatedAt @default(now())
   LessonCompletion LessonCompletion[]
 }
 
@@ -69,6 +264,23 @@ model Category {
 
   courseId String
   course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model LessonCompletion {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  completedAt DateTime @default(now())
+
+  @@unique([userId, lessonId])
+}
+
+enum UserRole {
+  TEACHER
+  STUDENT
+  ADMIN
 }
 
 enum LessonType {
@@ -82,13 +294,16 @@ enum CourseStatus {
   PUBLISHED
 }
 
-model LessonCompletion {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lessonId    String
-  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  completedAt DateTime @default(now())
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+}
 
-  @@unique([userId, lessonId])
+enum ResourceType {
+  PDF
+  VIDEO
+  IMAGE
+  DOCUMENT
+  LINK
 }

@@ -139,7 +139,9 @@ router.post('/', [verifyToken, isTeacher], async (req, res) => {
  *                       id:
  *                         type: string
  *                         format: uuid
- *                       name:
+ *                       firstName:
+ *                         type: string
+ *                       lastName:
  *                         type: string
  *                       email:
  *                         type: string
@@ -152,7 +154,7 @@ router.get('/', verifyTokenOptional, async (req, res) => {
         const courses = await prisma.course.findMany({
             include: {
                 user: {
-                    select: { id: true, email: true, name: true, role: true }
+                    select: { id: true, email: true, firstName: true, lastName: true, role: true }
                 },
                 _count: {
                     select: { lessons: true }
@@ -239,7 +241,9 @@ router.get('/', verifyTokenOptional, async (req, res) => {
  *                   properties:
  *                     id:
  *                       type: string
- *                     name:
+ *                     firstName:
+ *                       type: string
+ *                     lastName:
  *                       type: string
  *                     email:
  *                       type: string
@@ -267,7 +271,7 @@ router.get('/:id', verifyTokenOptional, async (req, res) => {
             where: { id: id },
             include: {
                 user: {
-                    select: { id: true, email: true, name: true }
+                    select: { id: true, email: true, firstName: true, lastName: true }
                 },
                 lessons: {
                     select: { id: true, title: true, type: true }

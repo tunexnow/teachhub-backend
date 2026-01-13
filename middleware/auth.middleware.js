@@ -34,7 +34,7 @@ const verifyTokenOptional = (req, res, next) => {
 };
 
 const isTeacher = (req, res, next) => {
-    if (req.userRole === 'teacher' || req.userRole === 'admin') {
+    if (req.userRole === 'TEACHER' || req.userRole === 'ADMIN') {
         next();
     } else {
         res.status(403).json({ message: 'Require Teacher Role' });
@@ -42,7 +42,7 @@ const isTeacher = (req, res, next) => {
 };
 
 const isAdmin = (req, res, next) => {
-    if (req.userRole === 'admin') {
+    if (req.userRole === 'ADMIN') {
         next();
     } else {
         res.status(403).json({ message: 'Require Admin Role' });

@@ -32,7 +32,9 @@ const prisma = new PrismaClient();
  *                 properties:
  *                   id: 
  *                     type: string
- *                   name: 
+ *                   firstName: 
+ *                     type: string
+ *                   lastName: 
  *                     type: string
  *                   email: 
  *                     type: string
@@ -44,15 +46,17 @@ router.get('/teachers/pending', [verifyToken, isAdmin], async (req, res) => {
     try {
         const pendingTeachers = await prisma.user.findMany({
             where: {
-                role: 'teacher',
-                isApproved: false
+                role: 'TEACHER',
+                role: 'TEACHER',
+                // isApproved removed from schema
             },
             select: {
                 id: true,
-                name: true,
+                firstName: true,
+                lastName: true,
                 email: true,
                 role: true,
-                isApproved: true,
+                isActive: true,
                 createdAt: true
             }
         });
@@ -96,7 +100,7 @@ router.put('/teachers/:id/approve', [verifyToken, isAdmin], async (req, res) => 
 
         const updatedUser = await prisma.user.update({
             where: { id },
-            data: { isApproved: true }
+            data: { isActive: true }
         });
 
         res.json({ message: 'Teacher approved successfully', user: updatedUser });

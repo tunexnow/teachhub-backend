@@ -38,10 +38,11 @@ async function run() {
 
         console.log('Registering teacher...');
         const reg = await makeRequest('/auth/register', 'POST', {
-            name: 'Simple Teacher',
+            firstName: 'Simple',
+            lastName: 'Teacher',
             email: `simplet${Date.now()}@test.com`,
             password: 'password123',
-            role: 'teacher'
+            role: 'TEACHER'
         });
         console.log('Reg status:', reg.status);
         console.log('Reg data:', reg.data);
